@@ -6,6 +6,10 @@ from aiogram.types import Message
 
 TOKEN = os.getenv("TOKEN")
 
+# ✅ защита от падения
+if not TOKEN:
+    raise ValueError("❌ TOKEN не найден. Добавь переменную TOKEN в Render / Environment Variables")
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
@@ -54,7 +58,7 @@ async def ask(message: Message):
         return
 
     if "python" in text.lower():
-        await message.answer("Python — это язык программирования для создания программ, сайтов и ботов.")
+        await message.answer("Python — язык программирования для создания программ и ботов.")
     elif "алгоритм" in text.lower():
         await message.answer("Алгоритм — это последовательность шагов для решения задачи.")
     else:
@@ -83,7 +87,5 @@ async def main():
     await dp.start_polling(bot)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
 if __name__ == "__main__":
     asyncio.run(main())
