@@ -18,7 +18,6 @@ dp = Dispatcher()
 async def start(message: Message):
     await message.answer(
         "👋 Привет! Я учебный бот\n\n"
-        "📌 Волков Родион\n\n"
         "Я могу помочь тебе с учебой:\n"
         "/help — список команд\n"
         "/math — мини тест по математике\n"
