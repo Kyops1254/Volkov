@@ -39,7 +39,7 @@ async def help_cmd(message: Message):
 @dp.message(Command("info"))
 async def info(message: Message):
     await message.answer(
-        "🤖 Я учебный бот Волков Родион\n\n"
+        "🤖 Я учебный бот\n\n"
         "Помогаю с:\n"
         "- программированием\n"
         "- школьными предметами\n"
