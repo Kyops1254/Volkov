@@ -6,9 +6,6 @@ from aiogram.types import Message
 
 TOKEN = os.getenv("TOKEN")
 
-if not TOKEN:
-    raise ValueError("TOKEN не найден. Добавь его в .env")
-
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
