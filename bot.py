@@ -70,8 +70,10 @@ async def math_test(message: Message):
         "🧠 Мини тест:\n\n"
         "Сколько будет 7 × 8?\n"
         "Ответ напиши сообщением."
+        "Сколько будет 25 + 17\n"
+        "Ответ напиши сообщением."
     )
-
+        
 
 @dp.message()
 async def check_answer(message: Message):
