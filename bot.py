@@ -1,13 +1,15 @@
 import asyncio
 import os
 import requests
+import aiosqlite
+
+from collections import defaultdict
 
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
 from aiogram.types import Message
 
 from dotenv import load_dotenv
-import aiosqlite
 
 from database import init_db
 
@@ -22,10 +24,36 @@ DB = "study.db"
 
 
 # =========================
-# AI FUNCTION (DEEPSEEK)
+# MEMORY + MODES
 # =========================
-def ask_ai(question: str):
+user_memory = defaultdict(list)
+user_mode = defaultdict(lambda: "teacher")
+
+MAX_MEMORY = 6
+
+
+# =========================
+# AI FUNCTION
+# =========================
+def ask_ai(user_id: int, question: str):
+
     api_key = os.getenv("DEEPSEEK_API_KEY")
+
+    mode = user_mode[user_id]
+
+    if mode == "teacher":
+        style = "Ты учитель. Объясняй подробно, понятно и с примерами."
+    elif mode == "simple":
+        style = "Объясняй очень просто, как ребёнку."
+    else:
+        style = "Отвечай максимально кратко."
+
+    messages = [{"role": "system", "content": style}]
+
+    for msg in user_memory[user_id]:
+        messages.append(msg)
+
+    messages.append({"role": "user", "content": question})
 
     url = "https://api.deepseek.com/v1/chat/completions"
 
@@ -36,21 +64,25 @@ def ask_ai(question: str):
 
     data = {
         "model": "deepseek-chat",
-        "messages": [
-            {
-                "role": "system",
-                "content": "Ты учебный помощник. Объясняй просто и понятно."
-            },
-            {
-                "role": "user",
-                "content": question
-            }
-        ],
+        "messages": messages,
         "temperature": 0.7
     }
 
     response = requests.post(url, headers=headers, json=data)
-    return response.json()["choices"][0]["message"]["content"]
+
+    try:
+        answer = response.json()["choices"][0]["message"]["content"]
+    except:
+        return "Ошибка ИИ 😔"
+
+    # memory save
+    user_memory[user_id].append({"role": "user", "content": question})
+    user_memory[user_id].append({"role": "assistant", "content": answer})
+
+    if len(user_memory[user_id]) > MAX_MEMORY:
+        user_memory[user_id] = user_memory[user_id][-MAX_MEMORY:]
+
+    return answer
 
 
 # =========================
@@ -60,39 +92,57 @@ def ask_ai(question: str):
 async def start(message: Message):
 
     await message.answer(
-        "📚 Бот для помощи в учёбе\n\n"
+        "📚 Учебный бот + ИИ\n\n"
         "Команды:\n"
-        "/add_homework\n"
+        "/add_homework subject | task\n"
         "/homework\n"
-        "/add_grade\n"
+        "/add_grade subject grade\n"
         "/grades\n"
-        "/add_reminder\n"
+        "/add_reminder text\n"
         "/reminders\n"
-        "/ai <вопрос>"
+        "/mode teacher/simple/short\n\n"
+        "💬 Просто напиши сообщение — я отвечу как ИИ"
     )
 
 
 # =========================
-# AI COMMAND
+# MODE
+# =========================
+@dp.message(Command("mode"))
+async def set_mode(message: Message):
+
+    try:
+        mode = message.text.split()[1].lower()
+
+        if mode not in ["teacher", "simple", "short"]:
+            await message.answer("Режимы: teacher / simple / short")
+            return
+
+        user_mode[message.from_user.id] = mode
+
+        await message.answer(f"✅ Режим установлен: {mode}")
+
+    except:
+        await message.answer("Пример: /mode teacher")
+
+
+# =========================
+# AI CHAT (OPTIONAL COMMAND)
 # =========================
 @dp.message(Command("ai"))
 async def ai_command(message: Message):
 
-    try:
-        text = message.text.replace("/ai ", "").strip()
+    text = message.text.replace("/ai ", "").strip()
 
-        if not text:
-            await message.answer("Напиши вопрос\nПример: /ai что такое интеграл")
-            return
+    if not text:
+        await message.answer("Напиши вопрос\nПример: /ai что такое интеграл")
+        return
 
-        await message.answer("🤖 Думаю...")
+    await message.answer("🤖 Думаю...")
 
-        answer = ask_ai(text)
+    answer = ask_ai(message.from_user.id, text)
 
-        await message.answer(answer)
-
-    except:
-        await message.answer("Ошибка ИИ 😔")
+    await message.answer(answer)
 
 
 # =========================
@@ -246,6 +296,25 @@ async def reminders(message: Message):
         text += f"• {row[0]}\n"
 
     await message.answer(text)
+
+
+# =========================
+# SMART CHAT (NO COMMAND)
+# =========================
+@dp.message()
+async def chat_handler(message: Message):
+
+    if not message.text:
+        return
+
+    if message.text.startswith("/"):
+        return
+
+    await message.answer("🤖 Думаю...")
+
+    answer = ask_ai(message.from_user.id, message.text)
+
+    await message.answer(answer)
 
 
 # =========================
