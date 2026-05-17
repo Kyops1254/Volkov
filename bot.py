@@ -92,16 +92,16 @@ def ask_ai(user_id: int, question: str):
 async def start(message: Message):
 
     await message.answer(
-        "📚 Учебный бот + AI\n\n"
+        "📚 Учебный бот\n\n"
         "Команды:\n"
-        "/add_homework subject | task\n"
+        "/add_homework предмет| task\n"
         "/homework\n"
-        "/add_grade subject grade\n"
+        "/add_grade оценка по предмету\n"
         "/grades\n"
         "/add_reminder text\n"
         "/reminders\n"
-        "/mode teacher/simple/short\n\n"
-        "💬 Просто напиши сообщение — я отвечу как AI"
+        "/mode учитель/простой/короткий\n\n"
+        "💬 Просто напиши сообщение — я отвечу на любой твой вопрос"
     )
 
 
