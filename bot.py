@@ -39,22 +39,6 @@ def ask_ai(user_id: int, question: str):
 
     api_key = os.getenv("DEEPSEEK_API_KEY")
 
-    mode = user_mode[user_id]
-
-    if mode == "teacher":
-        style = "Ты учитель. Объясняй подробно, понятно и с примерами."
-    elif mode == "simple":
-        style = "Объясняй очень просто, как ребёнку."
-    else:
-        style = "Отвечай максимально кратко."
-
-    messages = [{"role": "system", "content": style}]
-
-    for msg in user_memory[user_id]:
-        messages.append(msg)
-
-    messages.append({"role": "user", "content": question})
-
     url = "https://api.deepseek.com/v1/chat/completions"
 
     headers = {
@@ -64,26 +48,17 @@ def ask_ai(user_id: int, question: str):
 
     data = {
         "model": "deepseek-chat",
-        "messages": messages,
-        "temperature": 0.7
+        "messages": [
+            {"role": "user", "content": question}
+        ]
     }
 
     response = requests.post(url, headers=headers, json=data)
 
-    try:
-        answer = response.json()["choices"][0]["message"]["content"]
-    except:
-        return "Ошибка ИИ 😔"
+    print("STATUS:", response.status_code)
+    print("TEXT:", response.text)
 
-    # memory save
-    user_memory[user_id].append({"role": "user", "content": question})
-    user_memory[user_id].append({"role": "assistant", "content": answer})
-
-    if len(user_memory[user_id]) > MAX_MEMORY:
-        user_memory[user_id] = user_memory[user_id][-MAX_MEMORY:]
-
-    return answer
-
+    return response.text
 
 # =========================
 # START
