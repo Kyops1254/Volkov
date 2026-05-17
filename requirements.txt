@@ -2,10 +2,3 @@ aiogram
 aiosqlite
 apscheduler
 python-dotenv
-google-api-python-client
-google-auth-httplib2
-google-auth-oauthlib
-requests
-flask
-sqlalchemy
-psycopg2-binary
