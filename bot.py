@@ -33,32 +33,57 @@ MAX_MEMORY = 6
 
 
 # =========================
-# AI FUNCTION
+# AI (GROQ)
 # =========================
 def ask_ai(user_id: int, question: str):
 
-    api_key = os.getenv("DEEPSEEK_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
 
-    url = "https://api.deepseek.com/v1/chat/completions"
+    url = "https://api.groq.com/openai/v1/chat/completions"
 
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
 
+    mode = user_mode[user_id]
+
+    if mode == "teacher":
+        style = "Ты учитель. Объясняй подробно и понятно с примерами."
+    elif mode == "simple":
+        style = "Объясняй очень просто, как ребёнку."
+    else:
+        style = "Отвечай максимально кратко."
+
+    messages = [{"role": "system", "content": style}]
+
+    for m in user_memory[user_id]:
+        messages.append(m)
+
+    messages.append({"role": "user", "content": question})
+
     data = {
-        "model": "deepseek-chat",
-        "messages": [
-            {"role": "user", "content": question}
-        ]
+        "model": "llama-3.1-8b-instant",
+        "messages": messages,
+        "temperature": 0.7
     }
 
     response = requests.post(url, headers=headers, json=data)
 
-    print("STATUS:", response.status_code)
-    print("TEXT:", response.text)
+    try:
+        answer = response.json()["choices"][0]["message"]["content"]
+    except:
+        return "❌ Ошибка AI (проверь ключ или лимит)"
 
-    return response.text
+    # save memory
+    user_memory[user_id].append({"role": "user", "content": question})
+    user_memory[user_id].append({"role": "assistant", "content": answer})
+
+    if len(user_memory[user_id]) > MAX_MEMORY:
+        user_memory[user_id] = user_memory[user_id][-MAX_MEMORY:]
+
+    return answer
+
 
 # =========================
 # START
@@ -67,7 +92,7 @@ def ask_ai(user_id: int, question: str):
 async def start(message: Message):
 
     await message.answer(
-        "📚 Учебный бот + ИИ\n\n"
+        "📚 Учебный бот + AI\n\n"
         "Команды:\n"
         "/add_homework subject | task\n"
         "/homework\n"
@@ -76,7 +101,7 @@ async def start(message: Message):
         "/add_reminder text\n"
         "/reminders\n"
         "/mode teacher/simple/short\n\n"
-        "💬 Просто напиши сообщение — я отвечу как ИИ"
+        "💬 Просто напиши сообщение — я отвечу как AI"
     )
 
 
@@ -99,25 +124,6 @@ async def set_mode(message: Message):
 
     except:
         await message.answer("Пример: /mode teacher")
-
-
-# =========================
-# AI CHAT (OPTIONAL COMMAND)
-# =========================
-@dp.message(Command("ai"))
-async def ai_command(message: Message):
-
-    text = message.text.replace("/ai ", "").strip()
-
-    if not text:
-        await message.answer("Напиши вопрос\nПример: /ai что такое интеграл")
-        return
-
-    await message.answer("🤖 Думаю...")
-
-    answer = ask_ai(message.from_user.id, text)
-
-    await message.answer(answer)
 
 
 # =========================
@@ -166,8 +172,8 @@ async def homework(message: Message):
 
     text = "📚 Домашки:\n\n"
 
-    for row in rows:
-        text += f"{row[0]} — {row[1]}\n"
+    for r in rows:
+        text += f"{r[0]} — {r[1]}\n"
 
     await message.answer(text)
 
@@ -220,8 +226,8 @@ async def grades(message: Message):
 
     text = "🏆 Оценки:\n\n"
 
-    for row in rows:
-        text += f"{row[0]} — {row[1]}\n"
+    for r in rows:
+        text += f"{r[0]} — {r[1]}\n"
 
     await message.answer(text)
 
@@ -267,14 +273,14 @@ async def reminders(message: Message):
 
     text = "⏰ Напоминания:\n\n"
 
-    for row in rows:
-        text += f"• {row[0]}\n"
+    for r in rows:
+        text += f"• {r[0]}\n"
 
     await message.answer(text)
 
 
 # =========================
-# SMART CHAT (NO COMMAND)
+# SMART CHAT (AI)
 # =========================
 @dp.message()
 async def chat_handler(message: Message):
