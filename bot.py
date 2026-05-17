@@ -28,7 +28,7 @@ DB = "study.db"
 async def start(message: Message):
 
     await message.answer(
-        "📚 Study Bot\n\n"
+        "📚 Бот для помощи в учёбе\n\n"
         "Команды:\n"
         "/add_homework\n"
         "/homework\n"
